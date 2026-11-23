@@ -1,4 +1,4 @@
-name: Publish site
+name: Deploy to Cloud Run
 
 on:
   push:
@@ -8,39 +8,35 @@ on:
 
 permissions:
   contents: read
-  pages: write
   id-token: write
 
 concurrency:
-  group: pages
+  group: cloudrun
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Setup xdrun
-        uses: phillarmonic/setup-drun@v2
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
         with:
-          version: v2
+          project_id: chula-prod
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: github-actions-cloud-run@chula-prod.iam.gserviceaccount.com
 
-      - name: Check the site
-        run: xdrun ci
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v4
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
         with:
-          path: .
+          project_id: chula-prod
+          service: aica-website
+          region: asia-southeast1
+          source: .
+          flags: --allow-unauthenticated --port=8080 --memory=256Mi --cpu=1 --min-instances=0 --max-instances=2
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Show service URL
+        run: echo "Cloud Run URL ${{ steps.deploy.outputs.url }}"
