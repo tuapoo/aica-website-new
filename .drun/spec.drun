@@ -1,0 +1,8 @@
+version: 2.0
+
+task "ci" mode "ci" means "Check the AICA page is ready to publish":
+  step "Required files"
+  check if file "index.html" exists
+  check if file "assets/site.css" exists
+  check if file "assets/intro.js" exists
+  success "Site files are ready"
